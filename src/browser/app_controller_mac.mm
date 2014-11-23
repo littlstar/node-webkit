@@ -92,4 +92,34 @@
   return NSTerminateCancel;
 }
 
+- (void) awakeFromNib {
+  [self initEvents];
+}
+
+- (void) applicationWillFinishLaunching: (NSNotification *) notif {
+  [self initEvents];
+}
+
+- (void) initEvents {
+  NSAppleEventManager *manager = [NSAppleEventManager sharedAppleEventManager];
+  [manager setEventHandler:self
+               andSelector:@selector(handleGetURLEvent:withReplyEvent:)
+             forEventClass:kInternetEventClass andEventID:kAEGetURL];
+}
+
+- (void) handleGetURLEvent: (NSAppleEventDescriptor *) event
+            withReplyEvent: (NSAppleEventDescriptor *) reply
+{
+  NSString *url = [[event paramDescriptorForKeyword:keyDirectObject] stringValue];
+
+  if (content::Shell::windows().size() == 0) {
+    CommandLine::ForCurrentProcess()->AppendArg([url UTF8String]);
+    CommandLine::ForCurrentProcess()->FixOrigArgv4Finder([url UTF8String]);
+    return;
+  }
+
+  nw::Package* package = content::Shell::windows()[0]->GetPackage();
+  nwapi::App::EmitOpenEvent([url UTF8String]);
+}
+
 @end
